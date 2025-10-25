@@ -1,0 +1,940 @@
+{
+	"info": {
+		"_postman_id": "11dae0fe-bcc4-45d8-ab12-f81362b499a1",
+		"name": "Users API",
+		"description": "Тестирование CRUD-операций для users на dummyjson.com. Включает позитивные/негативные тесты и автотесты в Postman",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49418646",
+		"_collection_link": "https://trelsss-9437856.postman.co/workspace/DummyJSON~4e071b9f-d7b5-452a-b2b3-4b830fbd582b/collection/49418646-11dae0fe-bcc4-45d8-ab12-f81362b499a1?action=share&source=collection_link&creator=49418646"
+	},
+	"item": [
+		{
+			"name": "GET /users (список)",
+			"item": [
+				{
+					"name": "GET /users – list",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"\r",
+									"// 1) Проверка статус-кода 200\r",
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверка что ответ JSON\r",
+									"pm.test(\"Response is JSON\", function () {\r",
+									"    pm.response.to.be.withBody;\r",
+									"    pm.response.to.have.header(\"Content-Type\");\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\"))\r",
+									"        .to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// Парсим тело ответа\r",
+									"const data = pm.response.json();\r",
+									"\r",
+									"// 3) Проверяем структуру: есть массив users\r",
+									"pm.test(\"Body has users array\", function () {\r",
+									"    pm.expect(data).to.have.property(\"users\");\r",
+									"    pm.expect(data.users).to.be.an(\"array\");\r",
+									"});\r",
+									"\r",
+									"// Проверяем поля для пагинации\r",
+									"pm.test(\"Has total, limit, skip fields\", function () {\r",
+									"    pm.expect(data).to.have.property(\"total\");\r",
+									"    pm.expect(data).to.have.property(\"limit\");\r",
+									"    pm.expect(data).to.have.property(\"skip\");\r",
+									"});\r",
+									"\r",
+									"// 4) Проверяем первый объект пользователя\r",
+									"pm.test(\"First user has id and firstName\", function () {\r",
+									"    if (data.users.length > 0) {\r",
+									"        pm.expect(data.users[0]).to.have.property(\"id\");\r",
+									"        pm.expect(data.users[0]).to.have.property(\"firstName\");\r",
+									"    } else {\r",
+									"        pm.expect.fail(\"No users in response\");\r",
+									"    }\r",
+									"});\r",
+									"\r",
+									"// 5) Время ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									"\r",
+									"// 6) Сохраняем id первого юзера в переменную окружения\r",
+									"if (data.users && data.users.length > 0) {\r",
+									"    pm.environment.set(\"user_id\", data.users[0].id);\r",
+									"    // нужно для следующих запросов, GET /users/{{user_id}}\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users?limit=10&skip=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "skip",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GET /users/{user_id} + негатив 404",
+			"item": [
+				{
+					"name": "GET /users/{invalid_user_id} – not found",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Устанавливаем неверный id пользователя, если ещё не установлен\r",
+									"if (!pm.environment.get(\"invalid_user_id\")) {\r",
+									"    pm.environment.set(\"invalid_user_id\", 999999);\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Негативные проверки для запроса с неправильным id\r",
+									"\r",
+									"// 1) Проверяем что сервер возвращает 404\r",
+									"pm.test(\"Status is 404 for invalid id\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверка что в ответе есть тело с сообщением об ошибке\r",
+									"pm.test(\"Error message present\", function () {\r",
+									"    const body = pm.response.json();\r",
+									"    pm.expect(body).to.be.an(\"object\");\r",
+									"    pm.expect(Object.keys(body)).to.have.length.greaterThan(0);\r",
+									"});\r",
+									"\r",
+									"// 3) Проверка времени ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{invalid_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{invalid_user_id}}"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET /users/{user_id} – single",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Устанавливаем user_id по умолчанию, если его ещё нет\r",
+									"if (!pm.environment.get(\"user_id\")) {\r",
+									"    pm.environment.set(\"user_id\", 1);\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Позитивная проверка получения данных пользователя по id\r",
+									"\r",
+									"// 1) Статус-код 200\r",
+									"pm.test(\"Status is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверяем что пришёл JSON\r",
+									"pm.test(\"JSON content-type\", function () {\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\"))\r",
+									"        .to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// Разбираем тело ответа\r",
+									"const user = pm.response.json();\r",
+									"\r",
+									"// 3) Проверка основных обязательных полей в объекте пользователя\r",
+									"pm.test(\"User has id, firstName, lastName, email\", function () {\r",
+									"    pm.expect(user).to.have.property(\"id\");\r",
+									"    pm.expect(user).to.have.property(\"firstName\");\r",
+									"    pm.expect(user).to.have.property(\"lastName\");\r",
+									"    pm.expect(user).to.have.property(\"email\");\r",
+									"});\r",
+									"\r",
+									"// 4) Проверка простых типов данных\r",
+									"pm.test(\"Fields have expected types\", function () {\r",
+									"    pm.expect(user.id).to.be.a(\"number\");\r",
+									"    pm.expect(user.firstName).to.be.a(\"string\");\r",
+									"    pm.expect(user.lastName).to.be.a(\"string\");\r",
+									"    pm.expect(user.email).to.be.a(\"string\");\r",
+									"});\r",
+									"\r",
+									"// 5) Базовая проверка корректного email\r",
+									"pm.test(\"Email looks valid\", function () {\r",
+									"    const emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+									"    pm.expect(emailRe.test(user.email)).to.be.true;\r",
+									"});\r",
+									"\r",
+									"// 6) Проверка скорости ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									"\r",
+									"// 7) Сохраняем данные для следующих запросов\r",
+									"pm.environment.set(\"user_email\", user.email);\r",
+									"pm.environment.set(\"user_firstName\", user.firstName);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "POST /users/add",
+			"item": [
+				{
+					"name": "POST /users/add – create",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Позитивные проверки создания пользователя\r",
+									"\r",
+									"// 1) Проверяем статус-код (200 или 201)\r",
+									"pm.test(\"Status is 200/201\", function () {\r",
+									"    pm.expect([200, 201]).to.include(pm.response.code);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверяем что пришёл JSON\r",
+									"pm.test(\"Content-Type is JSON\", function () {\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\"))\r",
+									"        .to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// Парсим тело ответа\r",
+									"const user = pm.response.json();\r",
+									"\r",
+									"// 3) Проверка основных полей\r",
+									"pm.test(\"Has id, firstName, lastName, email\", function () {\r",
+									"    pm.expect(user).to.be.an(\"object\");\r",
+									"    [\"id\", \"firstName\", \"lastName\", \"email\"].forEach(function (k) {\r",
+									"        pm.expect(user).to.have.property(k);\r",
+									"    });\r",
+									"});\r",
+									"\r",
+									"// 4) Проверка типов данных\r",
+									"pm.test(\"Types ok\", function () {\r",
+									"    pm.expect(user.id).to.be.a(\"number\");\r",
+									"    pm.expect(user.firstName).to.be.a(\"string\");\r",
+									"    pm.expect(user.lastName).to.be.a(\"string\");\r",
+									"    pm.expect(user.email).to.be.a(\"string\");\r",
+									"});\r",
+									"\r",
+									"// 5) Проверка email базовой регуляркой\r",
+									"pm.test(\"Email looks valid\", function () {\r",
+									"    const re = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\r",
+									"    pm.expect(re.test(user.email)).to.be.true;\r",
+									"});\r",
+									"\r",
+									"// 6) Скорость ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									"\r",
+									"// 7) Сохраняем данные для последующих запросов\r",
+									"pm.environment.set(\"created_user_id\", user.id);\r",
+									"pm.environment.set(\"created_user_email\", user.email);\r",
+									"pm.environment.set(\"created_user_firstName\", user.firstName);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"description": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users/add",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"add"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "PUT /users/{target_user_id} + негатив 404 (фикс с target)",
+			"item": [
+				{
+					"name": "PUT /users/{invalid_user_id} – not found",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Негативные проверки при запросе пользователя по неправильному id\r",
+									"\r",
+									"// 1) Ожидаем 404 Not Found\r",
+									"pm.test(\"Status is 404 for invalid id\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверка что в ответе есть объект ошибки (не пустой)\r",
+									"pm.test(\"Has error object or message\", function () {\r",
+									"    const body = pm.response.json();\r",
+									"    pm.expect(body).to.be.an(\"object\");\r",
+									"    pm.expect(Object.keys(body).length).to.be.greaterThan(0);\r",
+									"});\r",
+									"\r",
+									"// 3) Проверка времени ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"lastName\": \"Updated_{{$timestamp}}\",\r\n  \"email\": \"qa.updated{{$timestamp}}@example.com\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users/{{invalid_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{invalid_user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PUT /users/{created_user_id} – update",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Берём созданный id, но если он невалидный — откатываемся на существующий\r",
+									"let created = Number(pm.environment.get(\"created_user_id\"));\r",
+									"let listId = Number(pm.environment.get(\"user_id\")); // сохраняли на Шаге 2 из списка\r",
+									"let fallback = (listId && listId >= 1 && listId <= 100) ? listId : 1;\r",
+									"\r",
+									"let target = (created && created >= 1 && created <= 100) ? created : fallback;\r",
+									"\r",
+									"pm.environment.set(\"target_user_id\", target);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Позитивные проверки обновления пользователя (PUT/PATCH)\r",
+									"\r",
+									"// 1) Статус-код 200\r",
+									"pm.test(\"Status is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверяем что пришёл JSON\r",
+									"pm.test(\"JSON Content-Type\", function () {\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\"))\r",
+									"        .to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// Разбираем ответ\r",
+									"const updated = pm.response.json();\r",
+									"\r",
+									"// Данные, которые отправляли (для сверки)\r",
+									"const sent = {\r",
+									"    lastName: pm.variables.replaceIn(\"Updated_{{$timestamp}}\"),\r",
+									"    email: pm.variables.replaceIn(\"qa.updated{{$timestamp}}@example.com\")\r",
+									"};\r",
+									"\r",
+									"// ID пользователя, которого обновляли\r",
+									"const targetId = Number(pm.environment.get(\"target_user_id\"));\r",
+									"\r",
+									"// 3) Проверка наличия основных полей\r",
+									"pm.test(\"Has id, firstName, lastName, email\", function () {\r",
+									"    [\"id\", \"firstName\", \"lastName\", \"email\"].forEach(function (k) {\r",
+									"        pm.expect(updated).to.have.property(k);\r",
+									"    });\r",
+									"});\r",
+									"\r",
+									"// 4) Проверка что поля действительно обновились\r",
+									"pm.test(\"lastName updated\", function () {\r",
+									"    pm.expect(updated.lastName).to.eql(sent.lastName);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"email updated\", function () {\r",
+									"    pm.expect(updated.email).to.eql(sent.email);\r",
+									"});\r",
+									"\r",
+									"// 5) Проверка соответствия id\r",
+									"pm.test(\"id equals target_user_id\", function () {\r",
+									"    pm.expect(updated.id).to.eql(targetId);\r",
+									"});\r",
+									"\r",
+									"// 6) Проверка времени ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									"\r",
+									"// 7) Сохраняем обновлённые данные в окружение\r",
+									"pm.environment.set(\"updated_user_email\", updated.email);\r",
+									"pm.environment.set(\"updated_user_lastName\", updated.lastName);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"lastName\": \"Updated_{{$timestamp}}\",\r\n  \"email\": \"qa.updated{{$timestamp}}@example.com\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users/{{target_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{target_user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "DELETE /users/{target_user_id} + негатив 404",
+			"item": [
+				{
+					"name": "DELETE /users/{target_user_id} – delete",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Устанавливаем корректный target_user_id для дальнейших запросов\r",
+									"\r",
+									"let target = Number(pm.environment.get(\"target_user_id\"));\r",
+									"let listId = Number(pm.environment.get(\"user_id\")); // получен на шаге списка пользователей\r",
+									"\r",
+									"// Если target отсутствует или вне допустимого диапазона\r",
+									"if (!target || !(target >= 1 && target <= 100)) {\r",
+									"    if (listId && listId >= 1 && listId <= 100) {\r",
+									"        target = listId;\r",
+									"    } else {\r",
+									"        target = 1;\r",
+									"    }\r",
+									"    pm.environment.set(\"target_user_id\", target);\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Позитивная проверка удаления пользователя\r",
+									"\r",
+									"// 1) Статус-код 200\r",
+									"pm.test(\"Status is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// 2) Проверяем что пришёл JSON\r",
+									"pm.test(\"JSON Content-Type\", function () {\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\"))\r",
+									"        .to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// Разбираем тело ответа\r",
+									"const body = pm.response.json();\r",
+									"const targetId = Number(pm.environment.get(\"target_user_id\"));\r",
+									"\r",
+									"// 3) Проверка базовой структуры\r",
+									"pm.test(\"Body is object and has id\", function () {\r",
+									"    pm.expect(body).to.be.an(\"object\");\r",
+									"    pm.expect(body).to.have.property(\"id\");\r",
+									"    pm.expect(body.id).to.eql(targetId);\r",
+									"});\r",
+									"\r",
+									"// 4) Мягкая проверка на наличие признаков удаления\r",
+									"pm.test(\"Has deletion hint (optional)\", function () {\r",
+									"    const keys = Object.keys(body);\r",
+									"    pm.expect(keys.length).to.be.greaterThan(0);\r",
+									"    // возможные варианты: isDeleted, deletedOn, возвращаются обновлённые поля и т.д.\r",
+									"});\r",
+									"\r",
+									"// 5) Проверка времени ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									"\r",
+									"// 6) Сохраняем факт удаления пользователя\r",
+									"pm.environment.set(\"deleted_user_id\", targetId);\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{target_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{target_user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE /users/{invalid_user_id} – not found",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Устанавливаем невалидный id для негативных тестов, если ещё не установлен\r",
+									"if (!pm.environment.get(\"invalid_user_id\")) {\r",
+									"    pm.environment.set(\"invalid_user_id\", 999999);\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Негативная проверка удаления пользователя с неправильным id\r",
+									"\r",
+									"// 1) Ожидаем статус-код 404\r",
+									"pm.test(\"Status is 404 for invalid id\", function () {\r",
+									"    pm.response.to.have.status(404);\r",
+									"});\r",
+									"\r",
+									"// 2) Тело ответа содержит объект ошибки (не пустой)\r",
+									"pm.test(\"Has error object/message\", function () {\r",
+									"    const body = pm.response.json();\r",
+									"    pm.expect(body).to.be.an(\"object\");\r",
+									"    pm.expect(Object.keys(body).length).to.be.greaterThan(0);\r",
+									"});\r",
+									"\r",
+									"// 3) Проверка времени ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{invalid_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{invalid_user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Поиск /users/search (+ параметризация)",
+			"item": [
+				{
+					"name": "GET /users/search – query",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Устанавливаем значение поискового запроса, если его нет или оно пустое\r",
+									"let q = pm.environment.get(\"search_q\");\r",
+									"if (!q || !q.trim()) {\r",
+									"    pm.environment.set(\"search_q\", \"emil\");\r",
+									"}\r",
+									"\r",
+									"// Синхронизируем параметр q в URL с переменной окружения\r",
+									"pm.request.url.query.upsert({\r",
+									"    key: \"q\",\r",
+									"    value: pm.environment.get(\"search_q\")\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Проверки поиска пользователей с пагинацией\r",
+									"\r",
+									"// 1) Статус-код 200\r",
+									"pm.test(\"Status is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"// 2) JSON Content-Type\r",
+									"pm.test(\"JSON Content-Type\", function () {\r",
+									"    pm.expect(pm.response.headers.get(\"Content-Type\"))\r",
+									"        .to.include(\"application/json\");\r",
+									"});\r",
+									"\r",
+									"// Разбираем тело ответа\r",
+									"const data = pm.response.json();\r",
+									"\r",
+									"// 3) Проверка структуры: массив + поля пагинации\r",
+									"pm.test(\"Body has users array + paging fields\", function () {\r",
+									"    pm.expect(data).to.have.property(\"users\");\r",
+									"    pm.expect(data.users).to.be.an(\"array\");\r",
+									"    pm.expect(data).to.have.property(\"total\");\r",
+									"    pm.expect(data).to.have.property(\"limit\");\r",
+									"    pm.expect(data).to.have.property(\"skip\");\r",
+									"});\r",
+									"\r",
+									"// 4) Проверка обязательных полей в элементах users\r",
+									"pm.test(\"Users contain required fields per select\", function () {\r",
+									"    if (data.users.length > 0) {\r",
+									"        const u = data.users[0];\r",
+									"        [\"id\", \"firstName\", \"lastName\", \"username\", \"email\"].forEach(function (k) {\r",
+									"            pm.expect(u).to.have.property(k);\r",
+									"        });\r",
+									"    } else {\r",
+									"        pm.expect(data.users.length, \"No users found for given query\")\r",
+									"            .to.be.greaterThan(-1);\r",
+									"    }\r",
+									"});\r",
+									"\r",
+									"// 5) Проверка limit и skip по параметрам запроса\r",
+									"pm.test(\"Limit/skip echoed correctly\", function () {\r",
+									"    const url = new URL(pm.request.url.toString());\r",
+									"    const limit = Number(url.searchParams.get(\"limit\"));\r",
+									"    const skip = Number(url.searchParams.get(\"skip\"));\r",
+									"    pm.expect(data.limit).to.eql(limit);\r",
+									"    pm.expect(data.skip).to.eql(skip);\r",
+									"});\r",
+									"\r",
+									"// 6) Мягкая проверка соответствия поисковому запросу (case-insensitive)\r",
+									"pm.test(\"Query matches at least partially (soft check)\", function () {\r",
+									"    const q = (pm.environment.get(\"search_q\") || \"\").toLowerCase();\r",
+									"    if (!q) {\r",
+									"        return;\r",
+									"    }\r",
+									"    const sample = data.users.slice(0, 3);\r",
+									"    const match = sample.some(function (u) {\r",
+									"        const str = [\r",
+									"            u.firstName,\r",
+									"            u.lastName,\r",
+									"            u.username,\r",
+									"            u.email\r",
+									"        ].filter(Boolean).join(\" \").toLowerCase();\r",
+									"        return str.includes(q);\r",
+									"    });\r",
+									"    pm.expect(match, \"No soft matches in top results\").to.be.true;\r",
+									"});\r",
+									"\r",
+									"// 7) Проверка времени ответа\r",
+									"pm.test(\"Response time < 1000 ms\", function () {\r",
+									"    pm.expect(pm.response.responseTime).to.be.below(1000);\r",
+									"});\r",
+									"\r",
+									"// 8) Сохраняем полезные данные для последующих запросов\r",
+									"if (data.users.length > 0) {\r",
+									"    pm.environment.set(\"search_user_id\", data.users[0].id);\r",
+									"    pm.environment.set(\"search_user_email\", data.users[0].email || \"\");\r",
+									"    pm.environment.set(\"search_user_username\", data.users[0].username || \"\");\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/search?q=emil&limit=5&skip=0&select=id,firstName,lastName,username,email",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "emil"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								},
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "select",
+									"value": "id,firstName,lastName,username,email"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{bearer_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": ""
+		}
+	]
+}
