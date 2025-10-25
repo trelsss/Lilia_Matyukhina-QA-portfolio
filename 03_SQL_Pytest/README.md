@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-# QA-portfolio-Lilia_Matyukhina
+#SQL автотесты (PostgreSQL + Pytest)
 =======
-SQL автотесты (PostgreSQL + Pytest)
-
 Учебный проект по проверке базы данных через Python.
 Что проверяет:
    есть ли пользователи без заказов
@@ -24,4 +21,3 @@ python -m pytest -q
 
 Вывод
 Все проверки прошли успешно, база данных в порядке.
->>>>>>> 494cf5d (Initial commit)
